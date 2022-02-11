@@ -9,7 +9,7 @@ from broker import Broker, Message
 class Mqtt(Broker):
 
     def __init__(self, host: str, port: int = None, credentials: Tuple[str, str] = None, name: str = None):
-        self._client = Client(client_id=name, clean_session=name is None)
+        self._client = Client(client_id=name, clean_session=name is None or len(name) == 0)
         self._client.on_message = self._on_message
 
         if credentials is not None:
@@ -23,8 +23,9 @@ class Mqtt(Broker):
         self._client.connect(**parameters)
 
     def __del__(self):
-        if self._client:
-            self._client.disconnect()
+        if hasattr(self, '_client'):
+            if self._client:
+                self._client.disconnect()
 
     def _on_message(self, client: Client, userdata: Any, message: MQTTMessage) -> None:
         message = Message(topic=message.topic, payload=message.payload)

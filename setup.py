@@ -9,5 +9,5 @@ setup(
     author='Carlos Ortega',
     author_email='carlosV2.0@gmail.com',
     keywords=['pip','broker','amqp', 'mqtt', 'queue'],
-    install_requires=['paho-mqtt>=1.6.1', 'pika>=1.2.0']
+    install_requires=['paho-mqtt>=1.6.1', 'pika>=1.2.0', 'dsnparse>=0.1.15']
 )

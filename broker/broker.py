@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
 from json import loads, dumps
-from re import fullmatch
 from typing import Callable, Any
 from urllib.parse import unquote
+
+from dsnparse import parse
 
 
 class Message(metaclass=ABCMeta):
@@ -59,22 +60,19 @@ class Broker(metaclass=ABCMeta):
         from broker import Amqp
         from broker import Mqtt
 
-        protocols = {'mqtt': Mqtt, 'amqp': Amqp}
+        schemes = {'mqtt': Mqtt, 'amqp': Amqp}
 
-        result = fullmatch('^([^:]+)://(?:([^:]+):([^@]+)@)?([^:@/]+)(?::(\d+))?(?:/([^/]+))?$', dsn)
-        if result is None:
-            raise Exception('Dsn `{dsn}` is invalid'.format(dsn=dsn))
-
-        protocol = result.group(1)
-        if protocol not in protocols:
-            raise Exception('Protocol `{protocol}` is unsupported'.format(protocol=protocol))
+        result = parse(dsn)
+        if result.scheme not in schemes:
+            raise Exception('Scheme `{scheme}` is unsupported'.format(scheme=result.scheme))
 
         credentials = None
-        if result.group(2) is not None and result.group(3) is not None:
-            credentials = (unquote(result.group(2)), unquote(result.group(3)))
+        if result.user is not None and result.password is not None:
+            credentials = (unquote(result.user), unquote(result.password))
 
-        host = result.group(4)
-        port = None if result.group(5) is None else int(result.group(5))
-        division = result.group(6)
-
-        return protocols[protocol](host, port, credentials, division)
+        return schemes[result.scheme](
+            result.host,
+            result.port,
+            credentials,
+            None if len(result.path) == 0 else result.path
+        )

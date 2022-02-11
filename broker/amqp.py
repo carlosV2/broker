@@ -23,8 +23,9 @@ class Amqp(Broker):
         self._channel = self._connection.channel()
 
     def __del__(self):
-        if self._connection:
-            self._connection.close()
+        if hasattr(self, '_connection'):
+            if self._connection:
+                self._connection.close()
 
     def publish(self, message: Message) -> None:
         self._channel.basic_publish(

@@ -5,14 +5,14 @@ RabbitMQ (AMQP) and MQTT.
 
 Use the following to instatiate a broker:
 ```python
-broker = Broker.from_dsn('<protocol>://<user>:<password>@<host>:<port>/<divsion>')
+broker = Broker.from_dsn('<scheme>://<username>:<password>@<host>:<port>/<path>')
 ```
 
-Currently it only supports 2 protocols:
+Currently it only supports 2 schemes:
 - amqp
 - mqtt
 
-The `division` parameter is optional but, if set, it defines the exchange to publish
+The `path` parameter is optional but, if set, it defines the exchange to publish
 into when using AMQP or the name of the client when using MQTT.
 
 ## API
