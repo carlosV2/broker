@@ -34,17 +34,17 @@ class Mqtt(Broker):
                 callback(message)
 
     def publish(self, message: Message) -> None:
-        self._client.publish(topic=message.get_topic(), payload=message.get_payload_as_bytes())
+        self._client.publish(topic=message.get_topic(), payload=message.get_raw_payload())
 
-    def subscribe(self, queue: str, callback: Callable[[Message], None]) -> None:
-        self._client.subscribe(topic=queue)
+    def subscribe(self, topic: str, callback: Callable[[Message], None]) -> None:
+        self._client.subscribe(topic=topic)
 
-        regex = '^{topic}$'.format(topic=queue.replace('+', '[^/]+').replace('#', '.+'))
-        self._subscriptions[queue] = (compile(regex), callback)
+        regex = '^{topic}$'.format(topic=topic.replace('+', '[^/]+').replace('#', '.+'))
+        self._subscriptions[topic] = (compile(regex), callback)
 
-    def unsubscribe(self, queue: str) -> None:
-        self._client.unsubscribe(topic=queue)
-        self._subscriptions.pop(queue)
+    def unsubscribe(self, topic: str) -> None:
+        self._client.unsubscribe(topic=topic)
+        self._subscriptions.pop(topic)
 
     def consume_forever(self) -> None:
         self._client.loop_forever()

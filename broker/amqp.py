@@ -30,19 +30,19 @@ class Amqp(Broker):
         self._channel.basic_publish(
             exchange=self._exchange,
             routing_key=message.get_topic(),
-            body=message.get_payload_as_bytes()
+            body=message.get_raw_payload()
         )
 
-    def subscribe(self, queue: str, callback: Callable[[Message], None]) -> None:
+    def subscribe(self, topic: str, callback: Callable[[Message], None]) -> None:
         def _on_message(channel: BlockingChannel, method: Basic.Deliver, properties: BasicProperties, body: bytes):
             callback(Message(topic=method.routing_key, payload=body))
 
-        tag = self._channel.basic_consume(queue=queue, on_message_callback=_on_message, auto_ack=True)
-        self._consumers[queue] = tag
+        tag = self._channel.basic_consume(queue=topic, on_message_callback=_on_message, auto_ack=True)
+        self._consumers[topic] = tag
 
-    def unsubscribe(self, queue: str) -> None:
-        if queue in self._consumers:
-            self._channel.basic_cancel(self._consumers.pop(queue))
+    def unsubscribe(self, topic: str) -> None:
+        if topic in self._consumers:
+            self._channel.basic_cancel(self._consumers.pop(topic))
 
     def consume_forever(self) -> None:
         self._channel.start_consuming()

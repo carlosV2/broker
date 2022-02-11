@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
+from json import loads, dumps
 from re import fullmatch
-from typing import Callable
+from typing import Callable, Any
 from urllib.parse import unquote
 
 
@@ -13,8 +14,26 @@ class Message(metaclass=ABCMeta):
     def get_topic(self) -> str:
         return self._topic
 
-    def get_payload_as_bytes(self) -> bytes:
+    def get_raw_payload(self) -> bytes:
         return self._payload
+
+    def get_encoded_payload(self) -> str:
+        return self.get_raw_payload().decode()
+
+    def get_hydrated_json_payload(self) -> Any:
+        return loads(self.get_encoded_payload())
+
+    @classmethod
+    def from_raw_payload(cls, topic: str, payload: bytes) -> 'Message':
+        return Message(topic=topic, payload=payload)
+
+    @classmethod
+    def from_decoded_payload(cls, topic: str, payload: str) -> 'Message':
+        return Message.from_raw_payload(topic=topic, payload=payload.encode())
+
+    @classmethod
+    def from_dehydrated_json_payload(cls, topic: str, payload: Any) -> 'Message':
+        return Message.from_decoded_payload(topic=topic, payload=dumps(payload))
 
 
 class Broker(metaclass=ABCMeta):
@@ -24,11 +43,11 @@ class Broker(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def subscribe(self, queue: str, callback: Callable[[Message], None]) -> None:
+    def subscribe(self, topic: str, callback: Callable[[Message], None]) -> None:
         pass
 
     @abstractmethod
-    def unsubscribe(self, queue: str) -> None:
+    def unsubscribe(self, topic: str) -> None:
         pass
 
     @abstractmethod
