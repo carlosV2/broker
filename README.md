@@ -24,11 +24,33 @@ defined on beforehand.
 Once the broker is initialised, the following methods can be called:
 - `publish(message: broker.Messagee)`: It takes the message (containing the topic and the
   payload) and delivers it to the broker.
-- `subscribe(topic: str, callback: Callable[[broker.Message], None])`: It subscribes to the given
-  topic/queue. Once a message is received, the callback is called with an instance of it.
-- `unsubscribe(topic: str)`: It unsubscribes from the given topic/queue.
+- `subscribe(sink: broker.Sink, callback: Callable[[broker.Message], None])`: It subscribes to the given
+  topic/queue. Once a message is received, the callback is called with an instance of it. This
+  method returns a `Subscription` object which can be used to unsubscribe.
 - `consume_forever()`: It starts consuming messages from the subscribed queue/topic. Attention: this
   is a blocking call!
+
+The `broker.Sink` object tells the library how and from where to consume the messages.
+
+For MQTT, the `broker.mqtt.Topic` object is provided as sink:
+```python
+broker = Broker.from_dsn('...')
+broker.subscribe(Topic('my/+/test'), on_message)
+```
+
+For AMQP the `broker.amqp.Queue` and `broker.amqp.UnamedQueue` objects are provided as sinks:
+```python
+broker = Broker.from_dsn('...')
+broker.subscribe(Queue('my_queue'), on_message)
+broker.subscribe(UnamedQueue(), on_message)
+```
+
+There also is the `broker.amqp.Routing` sink object which will provide the routing capabilities
+to the messages:
+```python
+broker = Broker.from_dsn('...')
+broker.subscribe(Routing('my.*.test', Queue('my_queue')), on_message)
+```
 
 The `broker.Message` object can be created with any of the following methods:
 - `Message.from_raw_payload(topic: str, payload: bytes)`

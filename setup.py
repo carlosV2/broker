@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='broker',
-    packages=['broker'],
+    packages=['broker', 'broker.mqtt', 'broker.amqp'],
     description='Broker abstraction to connect to AMQP and MQTT brokers.',
     version='0.1',
     url='https://github.com/carlosV2/broker',

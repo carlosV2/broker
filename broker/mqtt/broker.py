@@ -1,12 +1,15 @@
 from re import compile
 from typing import Tuple, Callable, Any
+from urllib.parse import unquote
 
+from dsnparse import parse
 from paho.mqtt.client import Client, MQTTMessage
 
-from broker import Broker, Message
+from broker import Broker as BaseBroker, Message, Sink
+from broker.mqtt import Subscription
 
 
-class Mqtt(Broker):
+class Broker(BaseBroker):
 
     def __init__(self, host: str, port: int = None, credentials: Tuple[str, str] = None, name: str = None):
         self._client = Client(client_id=name, clean_session=name is None or len(name) == 0)
@@ -37,15 +40,28 @@ class Mqtt(Broker):
     def publish(self, message: Message) -> None:
         self._client.publish(topic=message.get_topic(), payload=message.get_raw_payload())
 
-    def subscribe(self, topic: str, callback: Callable[[Message], None]) -> None:
-        self._client.subscribe(topic=topic)
+    def subscribe(self, sink: Sink, callback: Callable[[Message], None]) -> Subscription:
+        binding = sink.get_binding()
+        self._client.subscribe(topic=binding)
 
-        regex = '^{topic}$'.format(topic=topic.replace('+', '[^/]+').replace('#', '.+'))
-        self._subscriptions[topic] = (compile(regex), callback)
+        regex = '^{topic}$'.format(topic=binding.replace('+', '[^/]+').replace('#', '.+'))
+        self._subscriptions[binding] = (compile(regex), callback)
 
-    def unsubscribe(self, topic: str) -> None:
-        self._client.unsubscribe(topic=topic)
-        self._subscriptions.pop(topic)
+        return Subscription(client=self._client, topic=binding)
 
     def consume_forever(self) -> None:
         self._client.loop_forever()
+
+    @classmethod
+    def from_dsn(cls, dsn) -> 'Mqtt':
+        result = parse(dsn)
+
+        credentials = None
+        if result.user is not None and result.password is not None:
+            credentials = (unquote(result.user), unquote(result.password))
+
+        name = result.path.lstrip('/')
+        if len(name) == 0:
+            name = None
+
+        return cls(host=result.host, port=result.port, credentials=credentials, name=name)
