@@ -1,19 +1,18 @@
-from re import compile
-from typing import Tuple, Callable, Any
+from typing import Tuple
 from urllib.parse import unquote
 
 from dsnparse import parse
-from paho.mqtt.client import Client, MQTTMessage
+from paho.mqtt.client import Client
 
-from broker import Broker as BaseBroker, Message, Sink
-from broker.mqtt import Subscription
+from broker import Broker as BaseBroker
+from broker.mqtt import Queue, Router
 
 
 class Broker(BaseBroker):
 
     def __init__(self, host: str, port: int = None, credentials: Tuple[str, str] = None, name: str = None):
         self._client = Client(client_id=name, clean_session=name is None or len(name) == 0)
-        self._client.on_message = self._on_message
+        self._client.on_message = Router(self._client)
 
         if credentials is not None:
             self._client.username_pw_set(username=credentials[0], password=credentials[1])
@@ -30,30 +29,14 @@ class Broker(BaseBroker):
             if self._client:
                 self._client.disconnect()
 
-    def _on_message(self, client: Client, userdata: Any, message: MQTTMessage) -> None:
-        message = Message(topic=message.topic, payload=message.payload)
+    def queue(self, name: str, **kwargs) -> Queue:
+        return Queue(client=self._client, name=name)
 
-        for regex, callback in self._subscriptions.values():
-            if regex.match(message.get_topic()):
-                callback(message)
-
-    def publish(self, message: Message) -> None:
-        self._client.publish(topic=message.get_topic(), payload=message.get_raw_payload())
-
-    def subscribe(self, sink: Sink, callback: Callable[[Message], None]) -> Subscription:
-        binding = sink.get_binding()
-        self._client.subscribe(topic=binding)
-
-        regex = '^{topic}$'.format(topic=binding.replace('+', '[^/]+').replace('#', '.+'))
-        self._subscriptions[binding] = (compile(regex), callback)
-
-        return Subscription(client=self._client, topic=binding)
-
-    def consume_forever(self) -> None:
+    def loop(self) -> None:
         self._client.loop_forever()
 
     @classmethod
-    def from_dsn(cls, dsn) -> 'Mqtt':
+    def from_dsn(cls, dsn) -> 'Broker':
         result = parse(dsn)
 
         credentials = None

@@ -1,4 +1,3 @@
-from broker.message import Message
-from broker.sink import Sink
 from broker.subscription import Subscription
+from broker.queue import Queue
 from broker.broker import Broker

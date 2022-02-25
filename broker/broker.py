@@ -2,21 +2,23 @@ from abc import ABCMeta, abstractmethod
 from importlib import import_module
 from typing import Callable
 
-from broker import Message, Sink, Subscription
+from broker import Subscription, Queue
 
 
 class Broker(metaclass=ABCMeta):
 
     @abstractmethod
-    def publish(self, message: Message) -> None:
+    def queue(self, name: str, **kwargs) -> Queue:
         pass
 
-    @abstractmethod
-    def subscribe(self, sink: Sink, callback: Callable[[Message], None]) -> Subscription:
-        pass
+    def publish(self, queue: str, message: bytes):
+        self.queue(name=queue).publish(message=message)
+
+    def subscribe(self, queue: str, callback: Callable[[str, bytes], None]) -> Subscription:
+        return self.queue(name=queue).subscribe(callback=callback)
 
     @abstractmethod
-    def consume_forever(self) -> None:
+    def loop(self) -> None:
         pass
 
     @classmethod
